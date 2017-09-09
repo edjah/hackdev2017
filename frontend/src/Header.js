@@ -33,7 +33,7 @@ class Header extends Component {
       <Navbar staticTop={true}>
         <Navbar.Header>
           <Navbar.Brand>
-            <Link to="/">Kensho</Link>
+            <Link to="/">Jensho</Link>
           </Navbar.Brand>
           <Navbar.Toggle />
         </Navbar.Header>
