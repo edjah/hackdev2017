@@ -15,7 +15,7 @@ def init_stocks():
             filename = 'stocks/{}.csv'.format(r.Symbol)
             stock = pandas.read_csv(filename, parse_dates=['Date'])
             stock = stock[stock['Date'] > pandas.to_datetime('2016-09-06')]
-            stocks[r.Symbol] = stock.set_index('Date')
+            stocks[r.Symbol] = stock
         except:
             pass
 
