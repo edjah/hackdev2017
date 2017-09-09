@@ -1,11 +1,13 @@
 import os
 import pandas
-# from pytrends.request import TrendReq
+from pytrends.request import TrendReq
 from flask import Flask, request, jsonify
 
 
-# pytrends = TrendReq()
 stocks = {}
+pytrends = TrendReq()
+app = Flask(__name__)
+
 
 def init_stocks():
     df = pandas.read_csv('s&p500.csv')
@@ -13,15 +15,52 @@ def init_stocks():
         try:
             filename = 'stocks/{}.csv'.format(r.Symbol)
             data = pandas.read_csv(filename, parse_dates=['Date'])
-            data = data[data['Date'] >= pandas.to_datetime('2016-09-06')]
+            data = data[data['Date'] >= pandas.to_datetime('2017-06-09')]
             stocks[r.Symbol] = {'name': r.Name, 'sector': r.Sector, 'data': data}
         except:
             pass
 
-app = Flask(__name__)
+
+def correlation(a, b):
+    df = pandas.DataFrame(list(zip(a, b)))
+    return df.corr()[0][1]
+
 
 def bad_request():
     return jsonify({'success': False, 'error': 'Bad request'})
+
+
+@app.route('/trends', methods=['GET'])
+def google_trends():
+    keywords = request.args.getlist('keywords')
+    stock = stocks.get(request.args.get('symbol'))
+    if not keywords or not stock:
+        return bad_request()
+
+    try:
+        pytrends.build_payload(kw_list=keywords, timeframe='today 3-m')
+        interest = pytrends.interest_over_time()
+
+        chart_data = []
+        for i, r in stock['data'].iterrows():
+            chart_data.append(dict(r))
+
+        resp = {'success': True, 'chart': chart_data, 'keywords': {}}
+
+        for key in keywords:
+            points = []
+            for k, v in sorted(interest[key].items(), key=lambda x: x[0]):
+                points.append({'Date': str(k), 'Score': float(v)})
+
+            resp['keywords'][key] = {
+                'correlation': correlation(stock['data']['Close'], interest[key]),
+                'data': points
+            }
+    except Exception as e:
+        resp = {'success': False, 'error': 'Internal server error'}
+
+    return jsonify(resp)
+
 
 @app.route('/list_stocks')
 def list_stocks():
@@ -29,6 +68,7 @@ def list_stocks():
     for k, v in stocks.items():
         result.append({'symbol': k, 'name': v['name']})
     return jsonify({'success': True, 'result': result})
+
 
 @app.route('/get_stock', methods=['GET'])
 def get_stock():
@@ -45,11 +85,7 @@ def get_stock():
     for sym, other in stocks.items():
         other = other.get('data')
         if sym != symbol:
-            df = pandas.DataFrame(list(zip(stock['Close'], other['Close'])))
-            corr = df.corr()[0][1]
-            correlations[sym] = corr
-    corrs = sorted(correlations.items(), key=lambda x: -x[1])
-    corrs = corrs[:3] + corrs[-3:]
+            correlations[sym] = correlation(stock['Close'], other['Close'])
 
     return jsonify({
         'success': True,
@@ -58,15 +94,13 @@ def get_stock():
             'symbol': k,
             'name': stocks[k]['name'],
             'corr': v
-        } for k, v in corrs]
+        } for k, v in sorted(correlations.items(), key=lambda x: x[1])]
     })
 
 if __name__ == '__main__':
-    # pytrends.build_payload(kw_list=['apples', 'bagel'], timeframe='today 1-y')
     init_stocks()
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
-
 
 
 """
