@@ -3,7 +3,6 @@ import { Component } from "react";
 import { PageHeader, Table, Col, FormControl } from "react-bootstrap";
 import Chart from "./Chart";
 import { Link } from "react-router-dom";
-import { stringify } from "qs";
 
 class StockPage extends Component {
   addStock = (symbol, init) => {
@@ -65,6 +64,19 @@ class StockPage extends Component {
     this.addStock(this.state.stock, true);
   }
 
+  componentWillReceiveProps(props) {
+    this.setState({
+      stock: props.match.url.substring(1).toUpperCase(),
+      data: {},
+      dataArray: [],
+      correlations: [],
+      search: "",
+      searchData: []
+    });
+
+    this.addStock(props.match.url.substring(1).toUpperCase(), true);
+  }
+
   _handleClick = (symbol) => {
     if (symbol in this.state.data) {
       delete this.state.data[symbol];
@@ -94,7 +106,7 @@ class StockPage extends Component {
       let keywords = this.state.search.split(/\s+/);
 
       console.log(keywords);
-      if (keywords.length < 1 || (keywords.length == 1 && keywords[0] === "")) {
+      if (keywords.length < 1 || (keywords.length === 1 && keywords[0] === "")) {
         this.setState({ searchData: [] });
         return;
       }
@@ -140,9 +152,11 @@ class StockPage extends Component {
   render = () => {
     return (
       <div>
-        <PageHeader>{ this.props.match.url.substring(1).toUpperCase() }</PageHeader>
-        <Chart data={ this.state.dataArray.concat(this.state.searchData) } />
+        <PageHeader>{ this.state.stock }</PageHeader>
         <Col xs={8}>
+          <Chart data={ this.state.dataArray.concat(this.state.searchData) } />
+        </Col>
+        <Col xs={4} style={{ "overflow": "scroll", "height": "350px" }}>
           <Table striped condensed>
             <thead>
               <tr>
@@ -159,7 +173,7 @@ class StockPage extends Component {
                     <td><input type="checkbox" onClick={() => this._handleClick(e.symbol)} /></td>
                     <td><Link to={`/${e.symbol}`}>{e.symbol}</Link></td>
                     <td><Link to={`/${e.symbol}`}>{e.name}</Link></td>
-                    <td>{e.corr}</td>
+                    <td>{e.corr.toFixed(6)}</td>
                   </tr>
                 );
               })}

@@ -3,7 +3,7 @@ import * as or from "orama";
 
 const Chart = ({ data }) => {
   return (
-    <or.Chart>
+    <or.Chart height={500}>
       <or.Lines
         data={ data }
         x="date" y="price"

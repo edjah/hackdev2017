@@ -1,8 +1,8 @@
 import React from "react";
 import { Component } from "react";
 import { Navbar, FormGroup, FormControl, Button } from "react-bootstrap";
-import { Link, withRouter } from "react-router-dom";
-
+import { withRouter } from "react-router-dom";
+import logo from "./jensho.png";
 class Header extends Component {
   constructor() {
     super();
@@ -33,7 +33,7 @@ class Header extends Component {
       <Navbar staticTop={true}>
         <Navbar.Header>
           <Navbar.Brand>
-            <Link to="/">Jensho</Link>
+            <img src={logo} alt="Jensho"/>
           </Navbar.Brand>
           <Navbar.Toggle />
         </Navbar.Header>
