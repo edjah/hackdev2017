@@ -1,6 +1,6 @@
 import React from "react";
 import { Component } from "react";
-import { PageHeader, Checkbox } from "react-bootstrap";
+import { PageHeader, Checkbox, Table } from "react-bootstrap";
 import Chart from "./Chart";
 
 class StockPage extends Component {
@@ -84,13 +84,28 @@ class StockPage extends Component {
       <div>
         <PageHeader>{ this.props.match.url.substring(1).toUpperCase() }</PageHeader>
         <Chart data={ this.state.dataArray } />
-        {this.state.correlations.map(e => {
-          return (
-            <div key={e.symbol}>
-              <Checkbox onClick={() => this._handleClick(e.symbol)}>{e.symbol} {e.name} {e.corr}</Checkbox>
-            </div>
-          );
-        })}
+        <Table striped condensed>
+          <thead>
+            <tr>
+              <th/>
+              <th>Symbol</th>
+              <th>Company</th>
+              <th>Correlation</th>
+            </tr>
+          </thead>
+          <tbody>
+            {this.state.correlations.map(e => {
+              return (
+                <tr key={e.symbol}>
+                  <td><input type="checkbox" onClick={() => this._handleClick(e.symbol)} /></td>
+                  <td>{e.symbol}</td>
+                  <td>{e.name}</td>
+                  <td>{e.corr}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </Table>
       </div>
     );
   }
