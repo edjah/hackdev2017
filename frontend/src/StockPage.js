@@ -1,43 +1,96 @@
 import React from "react";
 import { Component } from "react";
-import { PageHeader } from "react-bootstrap";
+import { PageHeader, Checkbox } from "react-bootstrap";
 import Chart from "./Chart";
 
 class StockPage extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      stock: this.props.match.url.substring(1).toUpperCase(),
-      data: []
-    };
-
-    fetch(`/get_stock?stock=${this.state.stock}`, {
+  addStock = (symbol, init) => {
+    fetch(`/get_stock?symbol=${symbol}`, {
       method: "GET"
-    }).then(res => res.json())
+    }).then(res => {
+        console.log(res);
+        return res.json();
+      })
       .then(json => {
-        let res = json.result;
+        console.log(json);
+        if (init) {
+          this.setState({ correlations: json.correlations });
+        }
+        let res = json.chart;
         console.log(res);
         res = res.map(e => {
           return {
             date: new Date(Date.parse(e.Date)),
             price: e.Close,
             volume: e.Volume,
-            name: this.state.stock,
+            name: symbol,
             high: e.High,
             low: e.Low
           };
         });
 
         res.reverse();
-        this.setState({ data: res });
+
+        let dataCopy = {...this.state.data};
+
+        dataCopy[symbol] = res;
+        this.setState({ data: dataCopy });
+        console.log(dataCopy);
+
+        let temp = [];
+        for (let k in dataCopy) {
+            if (dataCopy.hasOwnProperty(k)) {
+               temp.push(dataCopy[k]);
+            }
+        }
+
+        console.log(temp);
+        this.setState({ dataArray: temp });
       });
+  }
+
+  constructor(props) {
+    super(props);
+    this.state = {
+      stock: this.props.match.url.substring(1).toUpperCase(),
+      data: {},
+      dataArray: [],
+      correlations: []
+    };
+
+    this.addStock(this.state.stock, true);
+  }
+
+  _handleClick = (symbol) => {
+    if (symbol in this.state.data) {
+      delete this.state.data[symbol];
+      let dataCopy = {...this.state.data};
+      let temp = [];
+        for (let k in dataCopy) {
+            if (dataCopy.hasOwnProperty(k)) {
+               temp.push(dataCopy[k]);
+            }
+        }
+
+        console.log(temp);
+        this.setState({ dataArray: temp });
+    } else {
+      this.addStock(symbol, false);
+    }
   }
 
   render = () => {
     return (
       <div>
         <PageHeader>{ this.props.match.url.substring(1).toUpperCase() }</PageHeader>
-        <Chart data={ this.state.data } />
+        <Chart data={ this.state.dataArray } />
+        {this.state.correlations.map(e => {
+          return (
+            <div key={e.symbol}>
+              <Checkbox onClick={() => this._handleClick(e.symbol)}>{e.symbol} {e.name} {e.corr}</Checkbox>
+            </div>
+          );
+        })}
       </div>
     );
   }
