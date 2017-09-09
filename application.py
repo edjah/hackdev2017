@@ -11,11 +11,10 @@ def init_stocks():
     df = pandas.read_csv('s&p500.csv')
     for i, r in df.iterrows():
         try:
-            stocks[r.Symbol] = {'name': r.Name, 'sector': r.Sector}
             filename = 'stocks/{}.csv'.format(r.Symbol)
-            stock = pandas.read_csv(filename, parse_dates=['Date'])
-            stock = stock[stock['Date'] > pandas.to_datetime('2016-09-06')]
-            stocks[r.Symbol] = stock
+            data = pandas.read_csv(filename, parse_dates=['Date'])
+            data = data[data['Date'] >= pandas.to_datetime('2016-09-06')]
+            stocks[r.Symbol] = {'name': r.Name, 'sector': r.Sector, 'data': data}
         except:
             pass
 
@@ -33,17 +32,48 @@ def list_stocks():
 
 @app.route('/get_stock', methods=['GET'])
 def get_stock():
-    stock = request.args.get('stock')
-    if not stock or stock not in stocks:
+    symbol = request.args.get('symbol')
+    if not symbol or symbol not in stocks:
         return bad_request()
-    else:
-        resp = []
-        for i, r in stocks[stock].iterrows():
-            resp.append(dict(r))
-        return jsonify({'success': True, 'result': resp})
+
+    stock = stocks.get(symbol).get('data')
+    chart_data = []
+    for i, r in stock.iterrows():
+        chart_data.append(dict(r))
+
+    correlations = {}
+    for sym, other in stocks.items():
+        other = other.get('data')
+        if sym != symbol:
+            df = pandas.DataFrame(list(zip(stock['Close'], other['Close'])))
+            corr = df.corr()[0][1]
+            correlations[sym] = corr
+    corrs = sorted(correlations.items(), key=lambda x: -x[1])
+    corrs = corrs[:3] + corrs[-3:]
+
+    return jsonify({
+        'success': True,
+        'chart': chart_data,
+        'correlations': [{
+            'symbol': k,
+            'name': stocks[k]['name'],
+            'corr': v
+        } for k, v in corrs]
+    })
 
 if __name__ == '__main__':
     # pytrends.build_payload(kw_list=['apples', 'bagel'], timeframe='today 1-y')
     init_stocks()
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
+
+
+
+"""
+import requests
+def get(route, *args, **kwargs):
+    return requests.get('http://0.0.0.0:5000/' + route, *args, kwargs)
+
+x = get('list_stocks')
+print(x.json())
+"""
