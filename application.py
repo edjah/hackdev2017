@@ -48,7 +48,8 @@ def get_stock():
             df = pandas.DataFrame(list(zip(stock['Close'], other['Close'])))
             corr = df.corr()[0][1]
             correlations[sym] = corr
-    top_corrs = sorted(correlations.items(), key=lambda x: -x[1])[:5]
+    corrs = sorted(correlations.items(), key=lambda x: -x[1])
+    corrs = corrs[:3] + corrs[-3:]
 
     return jsonify({
         'success': True,
@@ -57,7 +58,7 @@ def get_stock():
             'symbol': k,
             'name': stocks[k]['name'],
             'corr': v
-        } for k, v in top_corrs]
+        } for k, v in corrs]
     })
 
 if __name__ == '__main__':
@@ -72,6 +73,7 @@ if __name__ == '__main__':
 import requests
 def get(route, *args, **kwargs):
     return requests.get('http://0.0.0.0:5000/' + route, *args, kwargs)
+
 x = get('list_stocks')
 print(x.json())
 """
