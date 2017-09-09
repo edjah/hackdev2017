@@ -16,14 +16,18 @@ def init_stocks():
             filename = 'stocks/{}.csv'.format(r.Symbol)
             data = pandas.read_csv(filename, parse_dates=['Date'])
             data = data[data['Date'] >= pandas.to_datetime('2017-06-09')]
+            if len(data) < 64:
+                continue
             stocks[r.Symbol] = {'name': r.Name, 'sector': r.Sector, 'data': data}
         except:
             pass
 
 
 def correlation(a, b):
+    if not len(a) or not len(b):
+        return 0
     df = pandas.DataFrame(list(zip(a, b)))
-    return df.corr()[0][1]
+    return float(df.corr()[0][1])
 
 
 def bad_request():
