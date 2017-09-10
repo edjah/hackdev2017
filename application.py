@@ -2,7 +2,7 @@ import os
 import pandas
 from pytrends.request import TrendReq
 from flask import Flask, request, jsonify
-from talib.abstract import EMA, ATR
+
 
 stocks = {}
 pytrends = TrendReq()
@@ -16,21 +16,16 @@ def init_stocks():
             filename = 'stocks/{}.csv'.format(r.Symbol)
             data = pandas.read_csv(filename, parse_dates=['Date'])
             data = data[data['Date'] >= pandas.to_datetime('2017-06-09')]
-            data = data.sort_values('Date')
             stocks[r.Symbol] = {'name': r.Name, 'sector': r.Sector, 'data': data}
         except:
             pass
 
 
 def correlation(a, b):
-    a = pandas.DataFrame(a)
-    b = pandas.DataFrame(b)
-    df = a.join(b, rsuffix='1')
-    if len(df) == 0:
+    if not len(a) or not len(b):
         return 0
-
-    corr = df.dropna().corr()
-    return float(corr[corr.columns[0]][1])
+    df = pandas.DataFrame(list(zip(a, b)))
+    return float(df.corr()[0][1])
 
 
 def bad_request():
@@ -92,27 +87,11 @@ def get_stock():
     for sym, other in stocks.items():
         other = other.get('data')
         if sym != symbol:
-            a = stock.set_index('Date')['Close']
-            b = other.set_index('Date')['Close']
-            correlations[sym] = correlation(a, b)
-
-    renamed = stock.rename(columns={k: k.lower() for k in stock.columns})
-
-    atr = ATR(renamed)
-    atr.index = renamed['date']
-    atr = [{'Date': k, 'Value': v} for k, v in atr.dropna().items()]
-
-    ema = EMA(renamed)
-    ema.index = renamed['date']
-    ema = [{'Date': k, 'Value': v} for k, v in ema.dropna().items()]
+            correlations[sym] = correlation(stock['Close'], other['Close'])
 
     return jsonify({
         'success': True,
         'chart': chart_data,
-        'indicators': {
-            'Volatility': atr,
-            'Exponential MA': ema
-        },
         'correlations': [{
             'symbol': k,
             'name': stocks[k]['name'],
